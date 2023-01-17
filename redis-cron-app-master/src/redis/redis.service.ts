@@ -5,7 +5,7 @@ import { SuitDto } from 'src/suit/suit.dto';
 @Injectable()
 export class RedisService {
   count = 0;
-  constructor(@Inject(CACHE_MANAGER) private cacheManager: Cache) {}
+  constructor(@Inject(CACHE_MANAGER) private cacheManager: Cache) {} 
 
   public async get(key: string) {
     return await this.cacheManager.get<SuitDto>(key);
