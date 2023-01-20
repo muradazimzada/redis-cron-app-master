@@ -12,6 +12,7 @@ import { MongooseModule } from '@nestjs/mongoose';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { Suit } from './suit/suit.entity';
 import { SuitRepository } from './suit/suit.repository';
+import { ClientsModule, Transport } from '@nestjs/microservices';
 
 @Module({
   imports: [
@@ -24,6 +25,19 @@ import { SuitRepository } from './suit/suit.repository';
       entities: [Suit],
       synchronize: true,
     }),
+    ClientsModule.register([
+      {
+        name: 'Notification_Service',
+        transport: Transport.RMQ,
+        options: {
+          urls: ['amqp://localhost:5672'],
+          queue: 'suits_queue',
+          queueOptions: {
+            durable: false,
+          },
+        },
+      },
+    ]),
   ],
   controllers: [AppController, SuitController],
   providers: [AppService, SuitService, RedisService, SuitRepository],

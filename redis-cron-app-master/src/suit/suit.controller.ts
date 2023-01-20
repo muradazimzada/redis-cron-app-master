@@ -3,6 +3,7 @@ import { ClientProxy } from '@nestjs/microservices';
 import { Cron } from '@nestjs/schedule';
 import { first } from 'rxjs';
 import { RedisService } from 'src/redis/redis.service';
+import { ObjectID } from 'typeorm';
 import { SuitDto } from './suit.dto';
 import { Suit } from './suit.entity';
 import { SuitRepository } from './suit.repository';
@@ -20,14 +21,13 @@ export class SuitController {
   constructor(
     private readonly suitService: SuitService,
     private readonly suitRepository: SuitRepository,
-    @Inject('News_Service') private readonly client: ClientProxy,
+    @Inject('Notification_Service') private readonly client: ClientProxy,
   ) {}
   //#region  cache-read-write
   @Post('addSuit')
-  async addSuit(@Body() suit: SuitDto) {
+  async addSuit(@Body() suit: Suit) {
     await this.suitService.add(suit);
-    //console.log(suit);
-    return this.suitService.get(suit.id);
+    return this.suitService.get(suit._id.toString());
   }
 
   @Get('getAllSuitKeys')
@@ -45,34 +45,52 @@ export class SuitController {
   //#region  CronTask
   @Cron('10 * * * * *')
   async checkIfRemainderNeeded() {
-    /* 
-   get from db and send rabbitmq
-  */
-    const suit = await this.suitService.get('4');
+    const suits = await this.getAll();
     const currentDate = new Date();
 
     const currentTime = new Time(
       currentDate.getHours(),
       currentDate.getMinutes(),
     );
-    console.log(suit);
-    const timeLeftToMeeting =
-      currentTime.hour - new Date(suit.meeting_times.first).getHours();
-    // console.log(suit.meetingRemainderHours.first);
-    if (timeLeftToMeeting == suit.meetingRemainderHours.first) {
-      this.client.emit('sendNotification', suit);
+      //console.log(suits);
+    suits.forEach((suit) => {
+      const meetingTime = new Date(suit.meeting_times.first);
+      //s meetingTime.getHours();
+       console.log(meetingTime.getUTCHours());
+       const timeLeftToMeeting = meetingTime.getUTCHours() -currentDate.getHours();;
+       const remainderTime = (suit.meetingRemainderHours.first);
+      //  console.log('suit.meeting_times.first:',suit.meeting_times.first);
+      //  console.log('suit.meetingRemainderHours.first:',suit.meetingRemainderHours.first);
+      //  console.log('timeLeftToMeeting', timeLeftToMeeting);
+      //  console.log('remainderTime.getHours():', remainderTime);
+       console.log(remainderTime == timeLeftToMeeting);
+      if (timeLeftToMeeting == remainderTime) 
+      {
+           console.log("suit sent to queue")
+           this.client.emit('sendNotification', suit);
+      }
       console.log('you should notify user');
-    } else if (timeLeftToMeeting < 0) {
-      console.log('you missed the meeting');
-    }
-}
+    });
+  }
   //#endregion
 
-  // db write
+  // #db operations
   @Post('dbPost')
   async addToDb(@Body() suit: Suit): Promise<Suit> {
     console.log('dbPost called');
     const data = await this.suitRepository.add(suit);
+    console.log(data);
+    return data;
+  }
+  @Get('getById/:id')
+  async getByIdFromDb(@Param('id') _id: ObjectID) {
+    const data = await this.suitRepository.findOne(_id);
+    return data;
+  }
+
+  @Get('getAll')
+  async getAll() {
+    const data = await this.suitRepository.findAll();
     console.log(data);
     return data;
   }

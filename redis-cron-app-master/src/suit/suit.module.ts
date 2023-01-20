@@ -14,7 +14,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { Suit } from './suit.entity';
 import { SuitService } from './suit.service';
 import { SuitRepository } from './suit.repository';
-import { ClientsModule, Transport } from '@nestjs/microservices';
+import { ClientProxy, ClientsModule, Transport } from '@nestjs/microservices';
 @Module({
   imports: [
     ScheduleModule.forRoot(),

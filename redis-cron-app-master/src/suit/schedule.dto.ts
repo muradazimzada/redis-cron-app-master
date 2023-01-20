@@ -1,4 +1,4 @@
 export class Schedule {
-  first: Date;
-  second: Date;
+  first: number;
+  second: number;
 }
